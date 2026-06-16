@@ -10,5 +10,5 @@ De file `auto-updater.sh`, werkt de lokale repository bij met de laatste verande
 
 <img width="731" height="127" alt="Team Logo - Voorstel 2" src="https://github.com/user-attachments/assets/b49a1955-b11e-487e-ba92-c9e8b23eb993" />
 
-#HMI
+# HMI
 <img width="2204" height="1720" alt="image" src="https://github.com/user-attachments/assets/af1cdbce-f076-47d7-ad93-9db64e9f87ea" />
