@@ -11,7 +11,7 @@ ssh "$ROBOT_HOST" "cd /data/docker/open_manipulator && docker compose up -d"
 echo "      Wachten tot robot bringup actief is..."
 sleep 10
 
-# STAP 2: Op de LAPTOP (lokaal)
+# Docker opzetten voor de AI op de LAPTOP
 echo "[2/2] Laptop: Physical AI Tools container starten..."
 cd ~/physical_ai_tools/docker
 
