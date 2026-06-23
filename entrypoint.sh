@@ -1,12 +1,18 @@
-#!/bin/bash
+#entrypoint.sh
+!/bin/bash
+
 set -e
-echo "=== Open Manipulator (Robot PC) Startup ==="
+
+echo "Robotcel"
+
 source /opt/ros/jazzy/setup.bash
 
 cd /workspace
-echo "[1/2] Building workspace..."
+
+echo "Workspace bouwen"
 colcon build || true
+
 source install/setup.bash
 
-echo "[2/2] Starting bringup..."
+echo "Robot aanzetten"
 ros2 launch open_manipulator_bringup omy_ai.launch.py
