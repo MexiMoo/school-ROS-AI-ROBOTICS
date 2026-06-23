@@ -29,6 +29,6 @@ services:
       - ../:/root/ros2_ws/src/open_manipulator/
       - ./docker:/docker
     privileged: true
-    command: bash/docker/entrypoint.sh
+    command: bash /strobot.sh
 
 
