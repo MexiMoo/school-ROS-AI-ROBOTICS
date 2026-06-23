@@ -48,8 +48,6 @@ sleep 5
 echo "Open manipulator docker opzetten"
 ssh "$ROBOT_HOST" "cd /data/docker/open_manipulator && ./docker/container.sh start"
 
-ssh "$ROBOT_HOST" "./docker/container.sh enter bash -c 'source /opt/ros/jazzy/setup.bash && ros2 launch open_manipulator_bringup omy_ai.launch.py'"
-
 echo "Robotcel opgestart"
 echo "WebUI beschikbaar op: http://localhost/"
 # Herinnering waar de WebUI te vinden is
