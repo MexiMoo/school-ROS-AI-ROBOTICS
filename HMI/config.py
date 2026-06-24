@@ -14,7 +14,7 @@ HMI_MODE = os.environ.get("HMI_MODE", "auto")
 
 # ROS2 topics
 TOPIC_CAMERA_IMAGE   = "/camera/image_raw"        # sensor_msgs/Image
-TOPIC_JOINT_STATES   = "/joint_states"            # sensor_msgs/JointState
+TOPIC_JOINT_STATES   = "/gorobot/joint_states"            # sensor_msgs/JointState
 TOPIC_TRAIN_PROGRESS = "/training/progress"       # std_msgs/Float32  (0-100)
 TOPIC_CONFIDENCE     = "/inference/confidence"    # std_msgs/Float32  (0-1)
 TOPIC_GRIP_POINT     = "/vision/grip_point"       # geometry_msgs/Point (x,y genormaliseerd 0-1)
