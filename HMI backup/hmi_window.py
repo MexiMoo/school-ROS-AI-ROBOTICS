@@ -279,16 +279,29 @@ class MainWindow(QMainWindow):
         #self.btn_train.clicked.connect(lambda: self.ros_worker.send_command("start_training"))
         #cmd_layout.addWidget(self.btn_train)
 
+        self.btn_record = QPushButton("Testknop")
+        self.btn_record.clicked.connect(lambda: self.ros_worker.send_command("test"))
+        cmd_layout.addWidget(self.btn_record)
+
         self.btn_robot_start = QPushButton("Start robot")
         self.btn_robot_start.clicked.connect(lambda: self.ros_worker.send_command("start_robot"))
         cmd_layout.addWidget(self.btn_robot_start)
 
-        self.btn_estop = QPushButton("Stop Robot")
+        self.btn_robot_stop = QPushButton("Stop robot")
+        self.btn_robot_stop.clicked.connect(lambda: self.ros_worker.send_command("stop_robot"))
+        cmd_layout.addWidget(self.btn_robot_stop)
+
+        self.btn_estop = QPushButton("NOODSTOP")
         self.btn_estop.setStyleSheet(
             f"background-color: {COLOR_DANGER}; color: white; font-weight: 700; padding: 10px;"
         )
-        self.btn_estop.clicked.connect(lambda: self.ros_worker.send_command("stop_robot"))
+        self.btn_estop.clicked.connect(lambda: self.ros_worker.send_command("emergency_stop"))
         cmd_layout.addWidget(self.btn_estop)
+
+        self.btn_reset_estop = QPushButton("Reset noodstop")
+        self.btn_reset_estop.setEnabled(False)
+        self.btn_reset_estop.clicked.connect(lambda: self.ros_worker.send_command("reset_estop"))
+        cmd_layout.addWidget(self.btn_reset_estop)
 
         cmd_box.setLayout(cmd_layout)
 

@@ -42,4 +42,4 @@ echo
 echo -e "${GREEN}Done!${NO_FORMAT} Starting auto-run script..."
 echo
 
-./start_omy.sh
+./run.sh
