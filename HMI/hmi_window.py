@@ -3,7 +3,7 @@ import os
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QLabel, QPushButton, QProgressBar,
     QTableWidget, QTableWidgetItem, QVBoxLayout, QHBoxLayout, QGroupBox,
-    QTextEdit, QFrame, QSizePolicy
+    QTextEdit, QFrame, QSizePolicy, QComboBox
 )
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen, QColor, QFont, QTextCursor
 from PyQt5.QtCore import Qt, QTimer, QTime
@@ -11,41 +11,43 @@ from PyQt5.QtCore import Qt, QTimer, QTime
 import config
 from ros_interface import STATE_LABELS
 
-# Kleurtokens
-ACCENT      = config.ACCENT_COLOR
-BG_DARK     = "#1a1d23"
-BG_PANEL    = "#232730"
-BG_PANEL_2  = "#2b3039"
+ACCENT         = config.ACCENT_COLOR
+BG_DARK        = "#1a1d23"
+BG_PANEL       = "#232730"
+BG_PANEL_2     = "#2b3039"
 TEXT_PRIMARY   = "#e8eaed"
 TEXT_SECONDARY = "#9aa0a8"
-BORDER      = "#3a3f4a"
-
-COLOR_OK    = "#4caf82"
-COLOR_WARN  = "#e8a23d"
-COLOR_DANGER = "#e2483d"
-COLOR_INFO  = "#3f8efc"
-COLOR_IDLE  = "#5b6470"
+BORDER         = "#3a3f4a"
+COLOR_OK       = "#4caf82"
+COLOR_WARN     = "#e8a23d"
+COLOR_DANGER   = "#e2483d"
+COLOR_INFO     = "#3f8efc"
+COLOR_IDLE     = "#5b6470"
 
 STATE_COLORS = {
-    "idle": COLOR_IDLE,
-    "recording": COLOR_INFO,
-    "training": COLOR_WARN,
+    "idle":       COLOR_IDLE,
+    "warming_up": COLOR_IDLE,
+    "resetting":  COLOR_IDLE,
+    "recording":  COLOR_INFO,
+    "saving":     COLOR_WARN,
+    "training":   COLOR_WARN,
+    "stopped":    COLOR_IDLE,
     "autonomous": COLOR_OK,
-    "estop": COLOR_DANGER,
+    "estop":      COLOR_DANGER,
 }
 
 MODE_COLORS = {
-    "ros": COLOR_OK,
-    "mock": COLOR_WARN,
+    "ros":   COLOR_OK,
+    "mock":  COLOR_WARN,
     "error": COLOR_DANGER,
-    None: TEXT_SECONDARY,
+    None:    TEXT_SECONDARY,
 }
 
 MODE_LABELS = {
-    "ros": "ROS2 VERBONDEN",
-    "mock": "DEMO-MODUS",
+    "ros":   "ROS2 VERBONDEN",
+    "mock":  "DEMO-MODUS",
     "error": "FOUT",
-    None: "INITIALISEREN...",
+    None:    "INITIALISEREN...",
 }
 
 STYLESHEET = f"""
@@ -76,12 +78,20 @@ QPushButton {{
     padding: 8px;
     color: {TEXT_PRIMARY};
 }}
-QPushButton:hover {{
-    border: 1px solid {ACCENT};
+QPushButton:hover {{ border: 1px solid {ACCENT}; }}
+QPushButton:disabled {{ color: {TEXT_SECONDARY}; background-color: {BG_PANEL}; }}
+QComboBox {{
+    background-color: {BG_PANEL_2};
+    border: 1px solid {BORDER};
+    border-radius: 5px;
+    padding: 6px;
+    color: {TEXT_PRIMARY};
 }}
-QPushButton:disabled {{
-    color: {TEXT_SECONDARY};
+QComboBox::drop-down {{ border: none; }}
+QComboBox QAbstractItemView {{
     background-color: {BG_PANEL};
+    color: {TEXT_PRIMARY};
+    border: 1px solid {BORDER};
 }}
 QTableWidget {{
     background-color: {BG_PANEL_2};
@@ -101,10 +111,7 @@ QProgressBar {{
     text-align: center;
     color: {TEXT_PRIMARY};
 }}
-QProgressBar::chunk {{
-    background-color: {ACCENT};
-    border-radius: 4px;
-}}
+QProgressBar::chunk {{ background-color: {ACCENT}; border-radius: 4px; }}
 QTextEdit {{
     background-color: #14171c;
     color: {TEXT_PRIMARY};
@@ -113,6 +120,7 @@ QTextEdit {{
     font-size: 12px;
 }}
 """
+
 
 class MainWindow(QMainWindow):
     def __init__(self, ros_worker):
@@ -130,7 +138,6 @@ class MainWindow(QMainWindow):
         self._connect_signals()
         self._start_clock()
 
-    # UI opbouw
     def _build_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
@@ -146,10 +153,7 @@ class MainWindow(QMainWindow):
         root.addLayout(body, stretch=3)
 
         root.addWidget(self._build_log_box(), stretch=1)
-
-        self.statusBar().showMessage(
-            f"Topics & instellingen: config.py   |   modus-override: HMI_MODE env var"
-        )
+        self.statusBar().showMessage("Topics & instellingen: config.py  |  HMI_MODE env var")
 
     def _build_header(self):
         header = QFrame()
@@ -167,8 +171,7 @@ class MainWindow(QMainWindow):
             self.logo_label.setText("LOGO HIER")
             self.logo_label.setAlignment(Qt.AlignCenter)
             self.logo_label.setStyleSheet(
-                f"border: 1px dashed {BORDER}; border-radius: 4px; "
-                f"color: {TEXT_SECONDARY}; font-size: 11px;"
+                f"border: 1px dashed {BORDER}; border-radius: 4px; color: {TEXT_SECONDARY}; font-size: 11px;"
             )
         layout.addWidget(self.logo_label)
 
@@ -180,24 +183,20 @@ class MainWindow(QMainWindow):
         title_block.addWidget(title_label)
         title_block.addWidget(cell_label)
         layout.addLayout(title_block)
-
         layout.addStretch(1)
 
         badge_block = QVBoxLayout()
         badge_block.setSpacing(2)
-
         self.mode_badge = QLabel("●  INITIALISEREN...")
         self.mode_badge.setAlignment(Qt.AlignRight)
         self.mode_badge.setStyleSheet(f"color: {TEXT_SECONDARY}; font-weight: 600;")
         badge_block.addWidget(self.mode_badge)
-
         self.clock_label = QLabel("--:--:--")
         self.clock_label.setAlignment(Qt.AlignRight)
         self.clock_label.setStyleSheet(
             f"color: {TEXT_SECONDARY}; font-family: Consolas, monospace; font-size: 12px;"
         )
         badge_block.addWidget(self.clock_label)
-
         layout.addLayout(badge_block)
         return header
 
@@ -233,82 +232,80 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Joint states
-        joint_box = QGroupBox("Robot status (joint states)")
-        joint_layout = QVBoxLayout()
+        layout.addWidget(self._build_joint_box())
+        layout.addWidget(self._build_ai_box())
+        layout.addWidget(self._build_model_box())
+        return panel
+
+    def _build_joint_box(self):
+        box = QGroupBox("Robot status (joint states)")
+        layout = QVBoxLayout()
         self.joint_table = QTableWidget(0, 2)
         self.joint_table.setHorizontalHeaderLabels(["Joint", "Positie (rad)"])
         self.joint_table.horizontalHeader().setStretchLastSection(True)
         self.joint_table.verticalHeader().setVisible(False)
-        self.joint_table.setMinimumHeight(70)
-        joint_layout.addWidget(self.joint_table)
-        joint_box.setLayout(joint_layout)
+        self.joint_table.setMinimumHeight(150)
+        layout.addWidget(self.joint_table)
+        box.setLayout(layout)
+        return box
 
-        # AI status
-        ai_box = QGroupBox("AI status")
-        ai_layout = QVBoxLayout()
+    def _build_ai_box(self):
+        box = QGroupBox("AI status")
+        layout = QVBoxLayout()
 
-        ai_layout.addWidget(QLabel("Training / model laden:"))
+        layout.addWidget(QLabel("Voortgang:"))
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
-        ai_layout.addWidget(self.progress_bar)
+        layout.addWidget(self.progress_bar)
 
-        ai_layout.addWidget(QLabel("Confidence score:"))
+        layout.addWidget(QLabel("Confidence score:"))
         self.confidence_bar = QProgressBar()
         self.confidence_bar.setRange(0, 100)
-        ai_layout.addWidget(self.confidence_bar)
+        layout.addWidget(self.confidence_bar)
 
         self.confidence_label = QLabel("Confidence: -- (geen data)")
         self.confidence_label.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
-        ai_layout.addWidget(self.confidence_label)
-        ai_box.setLayout(ai_layout)
+        layout.addWidget(self.confidence_label)
+        box.setLayout(layout)
+        return box
 
-        # Commando's
-        cmd_box = QGroupBox("Besturing")
-        cmd_layout = QVBoxLayout()
+    def _build_model_box(self):
+        """Model selectie — dropdown + laden + stoppen."""
+        box = QGroupBox("AI model")
+        layout = QVBoxLayout()
 
-        #self.btn_record = QPushButton("Start LfD opname")
-        #self.btn_record.clicked.connect(lambda: self.ros_worker.send_command("start_recording"))
-        #cmd_layout.addWidget(self.btn_record)
+        # Dropdown met modellen
+        self.model_combo = QComboBox()
+        self.model_combo.addItem("— selecteer model —")
+        # Standaard model alvast toevoegen vanuit config
+        self.model_combo.addItem("Syntax-Terror-BV FINAL", userData=config.DEFAULT_POLICY_PATH)
+        self.model_combo.setCurrentIndex(1)  # direct geselecteerd
+        layout.addWidget(self.model_combo)
 
-        #self.btn_stop_record = QPushButton("Stop opname")
-        #self.btn_stop_record.clicked.connect(lambda: self.ros_worker.send_command("stop_recording"))
-        #cmd_layout.addWidget(self.btn_stop_record)
+        # Vernieuwen knop
+        btn_refresh = QPushButton("Vernieuwen")
+        btn_refresh.clicked.connect(self._refresh_models)
+        layout.addWidget(btn_refresh)
 
-        #self.btn_train = QPushButton("Start training")
-        #self.btn_train.clicked.connect(lambda: self.ros_worker.send_command("start_training"))
-        #cmd_layout.addWidget(self.btn_train)
-
-        self.btn_record = QPushButton("Testknop")
-        self.btn_record.clicked.connect(lambda: self.ros_worker.send_command("test"))
-        cmd_layout.addWidget(self.btn_record)
-
-        self.btn_robot_start = QPushButton("Start robot")
-        self.btn_robot_start.clicked.connect(lambda: self.ros_worker.send_command("start_robot"))
-        cmd_layout.addWidget(self.btn_robot_start)
-
-        self.btn_robot_stop = QPushButton("Stop robot")
-        self.btn_robot_stop.clicked.connect(lambda: self.ros_worker.send_command("stop_robot"))
-        cmd_layout.addWidget(self.btn_robot_stop)
-
-        self.btn_estop = QPushButton("NOODSTOP")
-        self.btn_estop.setStyleSheet(
-            f"background-color: {COLOR_DANGER}; color: white; font-weight: 700; padding: 10px;"
+        # Start / Stop knoppen naast elkaar
+        btn_row = QHBoxLayout()
+        self.btn_start_model = QPushButton("▶  Start model")
+        self.btn_start_model.setStyleSheet(
+            f"background-color: {COLOR_OK}; color: #14171c; font-weight: 700;"
         )
-        self.btn_estop.clicked.connect(lambda: self.ros_worker.send_command("emergency_stop"))
-        cmd_layout.addWidget(self.btn_estop)
+        self.btn_start_model.clicked.connect(self._start_selected_model)
+        btn_row.addWidget(self.btn_start_model)
 
-        self.btn_reset_estop = QPushButton("Reset noodstop")
-        self.btn_reset_estop.setEnabled(False)
-        self.btn_reset_estop.clicked.connect(lambda: self.ros_worker.send_command("reset_estop"))
-        cmd_layout.addWidget(self.btn_reset_estop)
+        self.btn_stop_model = QPushButton("■  Stop model")
+        self.btn_stop_model.setStyleSheet(
+            f"background-color: {BG_PANEL_2}; color: {TEXT_PRIMARY};"
+        )
+        self.btn_stop_model.clicked.connect(self.ros_worker.stop_inference)
+        btn_row.addWidget(self.btn_stop_model)
+        layout.addLayout(btn_row)
 
-        cmd_box.setLayout(cmd_layout)
-
-        layout.addWidget(joint_box)
-        layout.addWidget(ai_box)
-        layout.addWidget(cmd_box)
-        return panel
+        box.setLayout(layout)
+        return box
 
     def _build_log_box(self):
         box = QGroupBox("Logboek")
@@ -320,7 +317,6 @@ class MainWindow(QMainWindow):
         box.setLayout(layout)
         return box
 
-    # Klok in header
     def _start_clock(self):
         self._tick_clock()
         timer = QTimer(self)
@@ -331,7 +327,6 @@ class MainWindow(QMainWindow):
     def _tick_clock(self):
         self.clock_label.setText(QTime.currentTime().toString("HH:mm:ss"))
 
-    # Signals koppelen
     def _connect_signals(self):
         self.ros_worker.image_received.connect(self._update_image)
         self.ros_worker.joint_states_received.connect(self._update_joint_states)
@@ -341,13 +336,32 @@ class MainWindow(QMainWindow):
         self.ros_worker.state_changed.connect(self._update_state)
         self.ros_worker.mode_changed.connect(self._update_mode)
         self.ros_worker.log_message.connect(self._append_log)
+        self.ros_worker.policy_list_received.connect(self._update_model_list)
 
-    # Slots
+    # ── Model selectie ─────────────────────────────────────────────────────────
+    def _refresh_models(self):
+        self.log_message if False else None
+        self.ros_worker.get_policy_list()
+
+    def _update_model_list(self, paths: list):
+        self.model_combo.clear()
+        self.model_combo.addItem("— selecteer model —")
+        for path in paths:
+            # Toon alleen de bestandsnaam, niet het volledige pad
+            self.model_combo.addItem(os.path.basename(path), userData=path)
+
+    def _start_selected_model(self):
+        idx = self.model_combo.currentIndex()
+        if idx <= 0:
+            self._append_log("Selecteer eerst een model.")
+            return
+        policy_path = self.model_combo.currentData()
+        self.ros_worker.start_inference(policy_path)
+
+    # ── Slots ──────────────────────────────────────────────────────────────────
     def _update_image(self, frame):
         h, w, ch = frame.shape
-        bytes_per_line = ch * w
-        qimg = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888).copy()
-
+        qimg = QImage(frame.data, w, h, ch * w, QImage.Format_RGB888).copy()
         painter = QPainter(qimg)
 
         if self._last_grip_point is not None:
@@ -365,7 +379,6 @@ class MainWindow(QMainWindow):
             painter.drawText(10, 18, "DEMO-BEELD")
 
         painter.end()
-
         pixmap = QPixmap.fromImage(qimg).scaled(
             self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
         )
@@ -384,9 +397,6 @@ class MainWindow(QMainWindow):
         pct = int(max(0.0, min(1.0, value)) * 100)
         self.confidence_bar.setValue(pct)
         self.confidence_label.setText(f"Confidence: {pct}%")
-
-        # Vereiste uit de opdracht: bij lage confidence moet het duidelijk
-        # zijn dat de robot veilig zou moeten stoppen i.p.v. doorbewegen.
         if pct < 50:
             color = COLOR_DANGER
         elif pct < 75:
@@ -403,7 +413,8 @@ class MainWindow(QMainWindow):
         self._style_state_strip(state)
         is_estop = state == "estop"
         self.btn_reset_estop.setEnabled(is_estop)
-        for btn in (self.btn_record, self.btn_stop_record, self.btn_train, self.btn_autonomous):
+        for btn in (self.btn_robot_start, self.btn_robot_stop,
+                    self.btn_start_model, self.btn_stop_model):
             btn.setEnabled(not is_estop)
 
     def _update_mode(self, mode: str, message: str):
