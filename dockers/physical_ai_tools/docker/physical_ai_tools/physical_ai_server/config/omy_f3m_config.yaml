@@ -3,18 +3,20 @@ physical_ai_server:
     omy_f3m:
       observation_list:
         - cam_wrist
+        - cam_top
         - state
-
+ 
       camera_topic_list:
-        - cam_wrist:/camera/cam_wrist/color/image_rect_raw/compressed
-
+        - cam_wrist:/camera1/cam_wrist/color/image_rect_raw/compressed
+        - cam_top:/camera2/cam_top/color/image_raw/compressed
+ 
       joint_topic_list:
         - follower:/joint_states
         - leader:/leader/joint_trajectory
-
+ 
       joint_list:
         - leader
-
+ 
       joint_order:
         leader:
           - joint1
