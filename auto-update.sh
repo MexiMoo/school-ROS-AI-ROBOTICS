@@ -36,10 +36,9 @@ else
     git fetch origin
     git checkout -B main origin/main
 fi
-chmod +x run.sh
 
 echo
 echo -e "${GREEN}Done!${NO_FORMAT} Starting auto-run script..."
 echo
 
-./start_omy.sh
+sudo chmod+x start_omy.sh
