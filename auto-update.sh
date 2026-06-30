@@ -42,4 +42,4 @@ echo
 echo -e "${GREEN}Done!${NO_FORMAT} Starting auto-run script..."
 echo
 
-sudo chmod+x start_omy.sh
+sudo chmod +x start_omy.sh
