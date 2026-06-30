@@ -33,7 +33,6 @@ STATE_COLORS = {
     "training":   COLOR_WARN,
     "stopped":    COLOR_IDLE,
     "autonomous": COLOR_OK,
-    "estop":      COLOR_DANGER,
 }
 
 MODE_COLORS = {
@@ -130,7 +129,6 @@ class MainWindow(QMainWindow):
         self.resize(1100, 720)
         self.setStyleSheet(STYLESHEET)
 
-        self._last_grip_point = None
         self._current_mode = None
         self._current_state = "idle"
 
@@ -153,7 +151,7 @@ class MainWindow(QMainWindow):
         root.addLayout(body, stretch=3)
 
         root.addWidget(self._build_log_box(), stretch=1)
-        self.statusBar().showMessage("Topics & instellingen: config.py  |  HMI_MODE env var")
+        self.statusBar().showMessage("Topics & instellingen: config.py  |  HMI_MODE=<mode> python3 main.py  |  mode = ros, mock, auto")
 
     def _build_header(self):
         header = QFrame()
@@ -168,7 +166,6 @@ class MainWindow(QMainWindow):
             self.logo_label.setPixmap(pixmap)
             self.logo_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         else:
-            self.logo_label.setText("LOGO HIER")
             self.logo_label.setAlignment(Qt.AlignCenter)
             self.logo_label.setStyleSheet(
                 f"border: 1px dashed {BORDER}; border-radius: 4px; color: {TEXT_SECONDARY}; font-size: 11px;"
@@ -216,7 +213,7 @@ class MainWindow(QMainWindow):
         )
 
     def _build_camera_box(self):
-        box = QGroupBox("Camera / Vision (monitor-modus)")
+        box = QGroupBox("Camera / Vision")
         layout = QVBoxLayout()
         self.image_label = QLabel("Wacht op beeld...")
         self.image_label.setAlignment(Qt.AlignCenter)
@@ -270,7 +267,7 @@ class MainWindow(QMainWindow):
         return box
 
     def _build_model_box(self):
-        """Model selectie — dropdown + laden + stoppen."""
+        #Model selectie — dropdown + laden + stoppen.
         box = QGroupBox("AI model")
         layout = QVBoxLayout()
 
@@ -278,7 +275,7 @@ class MainWindow(QMainWindow):
         self.model_combo = QComboBox()
         self.model_combo.addItem("— selecteer model —")
         # Standaard model alvast toevoegen vanuit config
-        self.model_combo.addItem("Syntax-Terror-BV FINAL", userData=config.DEFAULT_POLICY_PATH)
+        self.model_combo.addItem("Syntax-Terror-BV", userData=config.DEFAULT_POLICY_PATH)
         self.model_combo.setCurrentIndex(1)  # direct geselecteerd
         layout.addWidget(self.model_combo)
 
@@ -332,7 +329,6 @@ class MainWindow(QMainWindow):
         self.ros_worker.joint_states_received.connect(self._update_joint_states)
         self.ros_worker.progress_received.connect(self._update_progress)
         self.ros_worker.confidence_received.connect(self._update_confidence)
-        self.ros_worker.grip_point_received.connect(self._update_grip_point)
         self.ros_worker.state_changed.connect(self._update_state)
         self.ros_worker.mode_changed.connect(self._update_mode)
         self.ros_worker.log_message.connect(self._append_log)
@@ -340,7 +336,6 @@ class MainWindow(QMainWindow):
 
     # ── Model selectie ─────────────────────────────────────────────────────────
     def _refresh_models(self):
-        self.log_message if False else None
         self.ros_worker.get_policy_list()
 
     def _update_model_list(self, paths: list):
@@ -362,23 +357,14 @@ class MainWindow(QMainWindow):
     def _update_image(self, frame):
         h, w, ch = frame.shape
         qimg = QImage(frame.data, w, h, ch * w, QImage.Format_RGB888).copy()
-        painter = QPainter(qimg)
-
-        if self._last_grip_point is not None:
-            painter.setPen(QPen(QColor(255, 120, 0), 3))
-            x = int(self._last_grip_point[0] * w)
-            y = int(self._last_grip_point[1] * h)
-            r = 12
-            painter.drawEllipse(x - r, y - r, 2 * r, 2 * r)
-            painter.drawLine(x - 20, y, x + 20, y)
-            painter.drawLine(x, y - 20, x, y + 20)
 
         if self._current_mode == "mock":
+            painter = QPainter(qimg)
             painter.setPen(QPen(QColor(232, 162, 61, 220)))
             painter.setFont(QFont("Consolas", 9))
             painter.drawText(10, 18, "DEMO-BEELD")
+            painter.end()
 
-        painter.end()
         pixmap = QPixmap.fromImage(qimg).scaled(
             self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
         )
@@ -405,17 +391,9 @@ class MainWindow(QMainWindow):
             color = COLOR_OK
         self.confidence_bar.setStyleSheet(f"QProgressBar::chunk {{ background-color: {color}; }}")
 
-    def _update_grip_point(self, x, y):
-        self._last_grip_point = (x, y)
-
     def _update_state(self, state: str):
         self._current_state = state
         self._style_state_strip(state)
-        is_estop = state == "estop"
-        self.btn_reset_estop.setEnabled(is_estop)
-        for btn in (self.btn_robot_start, self.btn_robot_stop,
-                    self.btn_start_model, self.btn_stop_model):
-            btn.setEnabled(not is_estop)
 
     def _update_mode(self, mode: str, message: str):
         self._current_mode = mode

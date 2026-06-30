@@ -21,27 +21,22 @@ BLUE="\033[48;5;12m"
 echo -e "Starting the ${BOLD}${WHITE}${BLUE}school-ROS-AI-ROBOTICS${NO_FORMAT} project..."
 echo Pulling latest version...
 
-if [ -d "school-ROS-AI-ROBOTICS/.git" ]; then
+if [ -d ".git" ]; then
     echo -e "${RED}Repo bestaat${NO_FORMAT} -> ${GREEN}Repo wordt geupdated...${NO_FORMAT}"
-    echo Repo bestaat -> Repo wordt geupdated...
-    cd school-ROS-AI-ROBOTICS || exit
-
-    git fetch --all
-    git reset --hard origin/main
-    git clean -fd
-
+    
+    git init
+    git remote add origin https://github.com/MexiMoo/school-ROS-AI-ROBOTICS.git
+    git fetch origin
+    git checkout -B main origin/main
 else
     echo -e "${YELLOW}Repo downloaden...${NO_FORMAT}"
-    echo Repo downloaden...
-    git clone https://github.com/MexiMoo/school-ROS-AI-ROBOTICS
-    cd school-ROS-AI-ROBOTICS || exit
+    
+    git init
+    git remote add origin https://github.com/MexiMoo/school-ROS-AI-ROBOTICS.git
+    git fetch origin
+    git checkout -B main origin/main
 fi
 chmod +x run.sh
-
-docker cp /home/student/school-ROS-AI-ROBOTICS/HMI/config.py physical_ai_server:/root/HMI/config.py
-docker cp /home/student/school-ROS-AI-ROBOTICS/HMI/hmi_window.py physical_ai_server:/root/HMI/hmi_window.py
-docker cp /home/student/school-ROS-AI-ROBOTICS/HMI/main.py physical_ai_server:/root/HMI/main.py
-docker cp /home/student/school-ROS-AI-ROBOTICS/HMI/ros_interface.py physical_ai_server:/root/HMI/ros_interface.py
 
 echo
 echo -e "${GREEN}Done!${NO_FORMAT} Starting auto-run script..."
