@@ -34,7 +34,8 @@ else
     git init
     git remote add origin https://github.com/MexiMoo/school-ROS-AI-ROBOTICS.git
     git fetch origin
-    git checkout -B main origin/main
+    git reset --hard origin/main
+    git clean -fd
 fi
 
 echo
