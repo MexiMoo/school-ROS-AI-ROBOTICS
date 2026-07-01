@@ -21,11 +21,11 @@ TOPIC_TASK_STATUS    = "/task/status"                       # physical_ai_interf
 TOPIC_TRAINING       = "/training/status"                   # physical_ai_interfaces/msg/TrainingStatus
 TOPIC_HF_STATUS      = "/huggingface/status"                # physical_ai_interfaces/msg/HFOperationStatus
 
-# Collision detectie
-TOPIC_COLLISION      = "/collision_flag"                    # std_msgs/msg/Bool
+# Collision detectie - NIET GEBRUIKT
+#TOPIC_COLLISION      = "/collision_flag"                    # std_msgs/msg/Bool
 
-# Grip point van vision (optioneel, als deze beschikbaar komt)
-TOPIC_GRIP_POINT     = "/vision/grip_point"                 # geometry_msgs/Point (x,y genormaliseerd 0-1)
+# Grip point van vision (optioneel, als deze beschikbaar komt) - NIET GEBRUIKT
+#TOPIC_GRIP_POINT     = "/vision/grip_point"                 # geometry_msgs/Point (x,y genormaliseerd 0-1)
 
 # Commando's vanuit de HMI naar de robot
 TOPIC_COMMAND        = "/hmi/command"                       # std_msgs/String
